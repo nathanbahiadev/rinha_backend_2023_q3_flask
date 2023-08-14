@@ -3,7 +3,7 @@ version: '3'
 services:
   api1:
     container_name: api1
-    entrypoint: sh docker-entrypoint.sh
+    entrypoint: dockerize -wait tcp://postgres:5432 -timeout 60s sh docker-entrypoint.sh
     restart: always
     build: 
       context: ./src
@@ -14,28 +14,29 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: '0.88GB'
+          cpus: '0.3'
+          memory: '1GB'
 
   api2:
     container_name: api2
-    entrypoint: sh docker-entrypoint.sh
+    entrypoint: dockerize -wait tcp://postgres:5432 -timeout 60s sh docker-entrypoint.sh
     restart: always
     build: 
       context: ./src
     ports:
       - "8000"
     depends_on:
-      - postgres
+      - postgres      
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: '0.88GB'
+          cpus: '0.3'
+          memory: '1GB'
 
   nginx:
     image: nginx:latest
     container_name: api_nginx
+    restart: always
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
@@ -46,8 +47,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: '0.5GB'
+          cpus: '0.4'
+          memory: '0.4GB'
 
   postgres:
     image: postgres:latest
@@ -56,10 +57,24 @@ services:
       POSTGRES_DB: mydatabase
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
+    volumes:
+      - ./pgdata:/var/lib/postgresql      
     ports:
-      - "5432:5432"
+      - "5432"
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: '0.74GB'
+          cpus: '0.4'
+          memory: '0.4GB'
+
+  redis:
+    image: redis:latest
+    container_name: api_redis
+    restart: always
+    ports:
+      - "6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: '0.2GB'
