@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 services:
   api1:
@@ -14,7 +14,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.3'
+          cpus: '0.4'
           memory: '1GB'
 
   api2:
@@ -30,7 +30,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.3'
+          cpus: '0.4'
           memory: '1GB'
 
   nginx:
@@ -48,7 +48,7 @@ services:
       resources:
         limits:
           cpus: '0.4'
-          memory: '0.4GB'
+          memory: '0.5GB'
 
   postgres:
     image: postgres:latest
@@ -64,17 +64,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.4'
-          memory: '0.4GB'
-
-  redis:
-    image: redis:latest
-    container_name: api_redis
-    restart: always
-    ports:
-      - "6379"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: '0.2GB'
+          cpus: '0.3'
+          memory: '0.5GB'
