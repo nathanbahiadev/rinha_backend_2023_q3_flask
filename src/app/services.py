@@ -1,10 +1,30 @@
-from configs.database import connect_to_database
+import json
+import os
+
+import psycopg2
+from redis import Redis
+
 from app.models import Person
 
 
+def connect_to_database():
+    return psycopg2.connect(
+        host=os.environ.get("POSTGRES_HOST", "postgres"),
+        database=os.environ.get("POSTGRES_DB", "mydatabase"),
+        user=os.environ.get("POSTGRES_USER", "myuser"),
+        password=os.environ.get("POSTGRES_PASSWORD", "mypassword"),
+    )
+
+
 class PeopleServices:
-    def create_person(self, person: Person) -> Person:
+    cache = Redis.from_url(os.environ.get("REDIS_URL", "redis://redis:6379"))
+
+    def create_person(self, person: Person) -> Person:   
+        if self.cache.get(person.apelido):
+            raise TypeError("apelido is already in use")
+
         person.prepare()
+
         connection = connect_to_database()
         cursor = connection.cursor()
 
@@ -17,6 +37,9 @@ class PeopleServices:
             connection.commit()
             cursor.close()
             connection.close()
+
+            self.cache.set(person.id, person.model_dump_json(), 120) # type: ignore
+            self.cache.set(person.apelido, "1")
             return person
 
         except Exception as exc:
@@ -26,6 +49,17 @@ class PeopleServices:
             raise exc
 
     def get_person(self, person_id: str) -> Person | None:
+        if cached_person := self.cache.get(person_id):
+            person_data = json.loads(cached_person) # type: ignore
+            return Person(
+                id=person_data["id"],
+                apelido=person_data["apelido"],
+                nome=person_data["nome"],
+                nascimento=person_data["nascimento"],
+                stack=person_data["stack"],
+                consulta=person_data["consulta"],
+            )
+
         connection = connect_to_database()
         cursor = connection.cursor()
 
@@ -49,7 +83,6 @@ class PeopleServices:
         cursor.execute("SELECT * FROM tb_people WHERE lower(consulta) LIKE '%s' LIMIT 50" % f"%{search_term.lower()}%")
         
         person_data = cursor.fetchall()
-
         result = []
 
         for person in person_data:
