@@ -1,5 +1,3 @@
-import json
-
 from flask import Blueprint, request, make_response
 from psycopg2.errors import UniqueViolation
 
@@ -15,13 +13,12 @@ services = PeopleServices()
 def add_people():
     try:
         json_data = request.json or {}
-        person = services.create_person(person=Person(
-            apelido=json_data.get("apelido"),
-            nome=json_data.get("nome"),
-            nascimento=json_data.get("nascimento"),
-            stack=json_data.get("stack") or [],            
-        ))
-        response = make_response(json.loads(person.model_dump_json()), 201)
+        
+        if not json_data:
+            return make_response({"error_type": "ValidationError", "error_message": "Invalid payload"}, 422)
+
+        person = services.create_person(Person.model_validate(json_data))
+        response = make_response(person.model_dump(), 201)
         response.headers["Location"] = f"/pessoas/{person.id}"
         return response
     
@@ -36,7 +33,7 @@ def add_people():
 def get_people(person_id):
     try:
         if person := services.get_person(person_id):
-            return make_response(json.loads(person.model_dump_json()), 200)
+            return make_response(person.model_dump(), 200)
         
         return make_response({"error_type": "NotFound", "error_message": "Resource not found"}, 404)
     
@@ -52,7 +49,7 @@ def find_people():
             return make_response({"error_type": "BadRequest", "error_message": "Query string 't' must be provided"}, 400)
 
         people = services.list_people(search_term)
-        response = [json.loads(person.model_dump_json()) for person in people]
+        response = [person.model_dump_json() for person in people]
         return make_response(response, 200)
         
     except Exception as e:

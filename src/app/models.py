@@ -1,29 +1,34 @@
-from datetime import datetime
+from datetime import date
 from typing import List
-from uuid import uuid4
+from uuid import uuid4, UUID as _UUID
 
-from pydantic import BaseModel, constr, validator
+from pydantic import BaseModel, constr
+from sqlalchemy import Column, UUID, Date, ARRAY, String
+
+from app.database import db
+
+
+class PersonModel(db.Model):
+    __tablename__ = "tb_people"
+
+    id = Column(UUID, primary_key=True, unique=True)
+    consulta = Column(String)
+    apelido = Column(String(32), unique=True, index=True)
+    nome = Column(String(100))
+    nascimento = Column(Date)
+    stack = Column(ARRAY(String(32)), nullable=True)
 
 
 class Person(BaseModel):
-    id: str | None = None
+    id: _UUID = uuid4()
     consulta: str | None = None
     apelido: constr(max_length=32) # type: ignore
     nome: constr(max_length=100) # type: ignore
-    nascimento: constr(max_length=10) # type: ignore
+    nascimento: date # type: ignore
     stack: List[constr(max_length=32)] # type: ignore
 
-    def prepare(self):
-        self.id = str(uuid4())
-        self.consulta = f"{self.apelido},{self.nome},{self.stack}".lower()        
-
-    @validator('nascimento')
-    def validate_nascimento(cls, value):
-        try:
-            datetime.strptime(value, "%Y-%m-%d")
-            return value
-        except ValueError:
-            raise ValueError("nascimento must be a valid date")
+    class Config:
+        from_attributes = True
 
 
 class ListPeople(BaseModel):
